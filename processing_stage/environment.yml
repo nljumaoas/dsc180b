@@ -1,7 +1,8 @@
-name: all_text
+name: t_ext
 channels:
   - conda-forge
   - defaults
+  - pytorch
 dependencies:
   - python==3.9
   - setuptools==58.2.0
@@ -10,7 +11,8 @@ dependencies:
   - pillow==10.2.0
   - scikit-image==0.18
   - pytorch==2.0.1
-  - pytorch-cuda==12.7 # change depending on gpu?
+  - torchvision==0.15.2
+  - cpuonly # for local use only since gpu sad
   - pip:
       - dataset==1.6.2
       - fastai==1.0.60
@@ -23,63 +25,3 @@ dependencies:
       - timm==0.9.12
       - python-dotenv==1.0.1
       - enlighten==1.12.4
-
-# name: test_text
-# channels:
-#   - conda-forge
-#   - defaults
-# dependencies:
-#   - python==3.9
-#   - setuptools==58.2.0
-#   - pip
-#   - numpy==1.22.3
-#   - pillow==10.2.0
-#   - scikit-image==0.18
-#   - pytorch==2.0.1
-#   - pip:
-#       - dataset==1.6.2
-#       - fastai==1.0.60
-#       - manga-ocr==0.1.11
-#       - pyclustering==0.10.1.2
-#       - pylcs==0.1.1
-#       - transformers==4.36.2
-
-# name: t_ext
-# channels:
-#   - conda-forge
-#   - defaults
-# dependencies:
-#   - python=3.9
-#   - setuptools=58.2.0
-#   - pip
-#   - numpy=1.22.3
-#   - pillow=10.2.0
-#   - pytorch=2.0.1
-#   - pip:
-#       - dataset==1.6.2
-#       - fastai==1.0.60
-#       - manga-ocr==0.1.11
-#       - pyclustering==0.10.1.2
-#       - pylcs==0.1.1
-#       - transformers==4.36.2
-#       - scikit-image==0.18
-
-# name: test_text
-# channels:
-#   - conda-forge
-#   - defaults
-# dependencies:
-#   - python==3.9=*
-#   - setuptools==58.2.0=*
-#   - pip=*
-#   - numpy==1.22.3=*
-#   - pillow==10.2.0=*
-#   - scikit-image==0.18=*
-#   - pytorch==1.12.1=*
-#   - pip:
-#       - dataset==1.6.2
-#       - fastai==1.0.60
-#       - manga-ocr==0.1.11
-#       - pyclustering==0.10.1.2
-#       - pylcs==0.1.1
-#       - transformers==4.36.2
