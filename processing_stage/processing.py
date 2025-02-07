@@ -19,10 +19,10 @@ sys.path.insert(0, 'Manga-Text-Segmentation/code/')
 class TextExtractor(ABC):
 
     @abstractmethod
-    def extract_lines(self, path_to_img: str) -> List[str]:
+    def process_page(self, path_to_img: str) -> List[str]:
         pass 
 
-class TextExtractorPixelwise(TextExtractor):
+class PageProcessor(TextExtractor):
 
     MIN_TEXT_SIZE = 15
 
@@ -37,10 +37,9 @@ class TextExtractorPixelwise(TextExtractor):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.magi = AutoModel.from_pretrained("ragavsachdeva/magi", trust_remote_code=True).to(device)
 
-
-    def extract_lines(self, path_to_img: str) -> List[str]:
-        # Checkpoint 1
-        print(f"Starting translation of {path_to_img}...")
+    def process_page(self, path_to_img: str) -> List[str]:
+        ## Segmentation and Clustering
+        print(f"Processing {path_to_img}...")
         timer_all = Timer()
         timer_all.start()
         cluster_timer = Timer()
@@ -74,7 +73,8 @@ class TextExtractorPixelwise(TextExtractor):
         clusters_ind = optics_instance.get_clusters()
         clusters = [[sample[i] for i in indexes] for indexes in clusters_ind]
         
-        print(f"Clusters created! ({cluster_timer.stop()})")
+        ## Element Creation
+        print(f"Clusters created! ({cluster_timer.stop()} s)")
         element_timer = Timer()
         element_timer.start()
 
@@ -93,13 +93,13 @@ class TextExtractorPixelwise(TextExtractor):
         sorted_text_indices = self.magi.sort_panels_and_text_bboxes_in_reading_order([panel_boxes], [text_boxes])[1][0]
         text_boxes_sorted = [text_boxes[i] for i in sorted_text_indices]
 
-        print(f"Elements created! ({element_timer.stop()})")
+        print(f"Elements created! ({element_timer.stop()} s)")
         text_timer = Timer()
         text_timer.start()
 
         # Extract the text from each of the bounding boxes
         img_pil = Img.open(path_to_img)
-        result = []
+        text_lines = []
         for box in text_boxes_sorted:
             (x1, y1, x2, y2) = box
 
@@ -109,12 +109,48 @@ class TextExtractorPixelwise(TextExtractor):
             cropped_img = img_pil.crop((x1, y1, x2, y2))
             text = self.mocr(cropped_img)
 
-            result.append(text)
+            text_lines.append(text)
 
-        print(f"Text extracted! ({text_timer.stop()})")
-        print(f"Process complete! ({timer_all.stop()})")
+        print(f"Text extracted! ({text_timer.stop()} s)")
 
-        return result
+        # Formats output to match OpenMantra
+
+        output = {
+            "image_paths": {
+                "ja": path_to_img
+            },
+            "frame": [],
+            "text": []
+        }
+
+        for panel in panel_boxes:
+            output['frame'].append(xyxy_to_xywh(panel))
+
+        for text_box in text_boxes_sorted:
+            output['text'].append(xyxy_to_xywh(text_box))
+
+        for text_num in np.arange(len(text_boxes_sorted)):
+            output["text"][text_num]["text_ja"] = text_lines[text_num]
+
+        print(f"Process complete! ({timer_all.stop()} s)")
+
+        return output
+
+    @classmethod
+    def xyxy_to_xywh(xyxy):
+        """
+        The name is a work in progress okay...
+        """
+        x1, y1, x2, y2 = xyxy
+
+        xywh = {
+            'x': x1,
+            'y': y1,
+            'w': x2 - x1,
+            'h': y2 - y1
+        }
+
+        return np.round(wywh, 1)
 
     @classmethod
     def bounding_box(cls, points):
