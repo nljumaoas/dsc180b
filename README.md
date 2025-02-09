@@ -11,7 +11,7 @@ This project features a manga translation pipeline that allows Japanese text sou
 
 While this pipeline is capable of running locally, it is designed to have user interaction conducted through a local Flask frontend that uses API calls to connect to a remote server, allowing computation to be offloaded in order to minimize latency while maintaining an intuitive user experience. 
 
-*(Code Checkpoint: the pipeline can currently be run locally, Flask/Runpod integration will be implemented for a live demo at the capstone showcase)*
+*(Code Checkpoint: the pipeline can currently be run locally, Flask/remote server integration will be implemented for a live demo at the capstone showcase)*
 
 ## Setup
 
