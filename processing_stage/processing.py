@@ -73,6 +73,7 @@ class PageProcessor(TextExtractor):
         clusters_ind = optics_instance.get_clusters()
         clusters = [[sample[i] for i in indexes] for indexes in clusters_ind]
         
+
         ## Element Creation
         print(f"Clusters created! ({cluster_timer.stop()} s)")
         element_timer = Timer()
@@ -113,7 +114,8 @@ class PageProcessor(TextExtractor):
 
         print(f"Text extracted! ({text_timer.stop()} s)")
 
-        # Formats output to match OpenMantra
+
+        ## Output Formatting (matches OpenMantra)
 
         output = {
             "image_paths": {
@@ -150,7 +152,7 @@ class PageProcessor(TextExtractor):
             'h': y2 - y1
         }
 
-        return np.round(wywh, 1)
+        return np.round(xywh, 1)
 
     @classmethod
     def bounding_box(cls, points):
