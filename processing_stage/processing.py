@@ -12,9 +12,9 @@ import numpy as np
 import torch
 import einops
 import shapely
-from eval_utilities import Timer
+from processing_stage.eval_utilities import Timer
 
-sys.path.insert(0, 'Manga-Text-Segmentation/code/')
+sys.path.insert(0, '../Manga-Text-Segmentation/code/')
 
 class TextExtractor(ABC):
 
@@ -101,10 +101,11 @@ class PageProcessor(TextExtractor):
         # Extract the text from each of the bounding boxes
         img_pil = Img.open(path_to_img)
         text_lines = []
-        for box in text_boxes_sorted:
-            (x1, y1, x2, y2) = box
+        for i in range(len(text_boxes_sorted)):
+            (x1, y1, x2, y2) = text_boxes_sorted[i]
 
             if min(abs(x2-x1), abs(y2-y1)) < self.MIN_TEXT_SIZE:
+                text_boxes_sorted.pop(i)
                 continue
 
             cropped_img = img_pil.crop((x1, y1, x2, y2))
@@ -126,10 +127,10 @@ class PageProcessor(TextExtractor):
         }
 
         for panel in panel_boxes:
-            output['frame'].append(xyxy_to_xywh(panel))
+            output['frame'].append(PageProcessor.xyxy_to_xywh(panel))
 
         for text_box in text_boxes_sorted:
-            output['text'].append(xyxy_to_xywh(text_box))
+            output['text'].append(PageProcessor.xyxy_to_xywh(text_box))
 
         for text_num in np.arange(len(text_boxes_sorted)):
             output["text"][text_num]["text_ja"] = text_lines[text_num]
@@ -139,20 +140,20 @@ class PageProcessor(TextExtractor):
         return output
 
     @classmethod
-    def xyxy_to_xywh(xyxy):
+    def xyxy_to_xywh(cls, xyxy):
         """
         The name is a work in progress okay...
         """
         x1, y1, x2, y2 = xyxy
 
         xywh = {
-            'x': x1,
-            'y': y1,
-            'w': x2 - x1,
-            'h': y2 - y1
+            'x': round(x1, 1),
+            'y': round(y1, 1),
+            'w': round(x2 - x1, 1),
+            'h': round(y2 - y1, 1)
         }
 
-        return np.round(xywh, 1)
+        return xywh
 
     @classmethod
     def bounding_box(cls, points):

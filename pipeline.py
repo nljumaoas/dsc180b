@@ -1,6 +1,7 @@
 from Translation_stage.translate_page import Translator
 from processing_stage.processing import PageProcessor
 from TypeSetting_V1.typesetting import TextBubbleTypesetter
+import platform
 
 def main(image_path):
     # page processing stage
@@ -17,7 +18,7 @@ def main(image_path):
     translator_system = Translator()
     translation_result = translator_system.generate_translation(texts, target_language, image_path, panels_coordinates)
 
-    result = {"image_path": image_path, "text": []}
+    result = {"image": image_path, "text": []}
     for i in range(len(image_content['text'])):
         updated = image_content['text'][i]
         updated['text_translated'] = translation_result[i]
@@ -25,8 +26,14 @@ def main(image_path):
 
 
     # Typesetting Stage
-    typesetter = TextBubbleTypesetter("/System/Library/Fonts/Supplemental/Arial.ttf")
-    typesetter.typeset_text_bubbles(result, "output_image.jpg", language='text_en')
+    if platform.system() == "Linux":
+        font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    elif platform.system() == "Darwin":
+        font = "/System/Library/Fonts/Supplemental/Arial.ttf"
+    elif platform.system()=="Windows":
+        font = "/C:/Windows/Fonts/arial.ttf"
+    typesetter = TextBubbleTypesetter(font)
+    typesetter.typeset_text_bubbles(result, "output_image.jpg")
 
 if __name__ == "__main__":
     import argparse
