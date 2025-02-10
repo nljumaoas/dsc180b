@@ -3,12 +3,12 @@ import os
 import ollama
 import base64
 import json
-import re
+import ast
 
 os.environ["AUTOGEN_USE_DOCKER"] = "false"
 
 # Load configuration from JSON file
-with open("config.json", "r") as file:
+with open("./Translation_stage/config.json", "r") as file:
     config = json.load(file)
 
 # Access models and settings
@@ -88,27 +88,24 @@ class Translator():
         manager = autogen.agentchat.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
         print('set up group chat.')
         task=f"""
-        Please translate to {target_language} while preserving the nuance and tone emotion, for verses with negative emotion, try best to translate:
+        Please translate dialogues this manga page to {target_language} while preserving the nuance and tone emotion. 
+        Don't omit or combine any item in the original list passed in for translation, the output translation should have {len(text)} items of lines.
+        For verses with negative emotion, try best to translate:
 
         {text}
 
         Consider the visual context of this scene while translating: {context_message}.
         Refer to previous content of the story for coherency in translation: {self.context_history}.
+        Return end translation result for verses in a list with format (double quotes around each verse) like this: result: ["How are you", "what's up"]
         """
 
         user.initiate_chat(manager,  message=task)
         final_translation = groupchat.messages[-1]['content']
-        print('finished translation.')
+        # print('finished translation.')
         # Look for 'result: [...]' in the response
-        match = re.search(r'result:\s*\[(.*?)\]', final_translation, re.DOTALL)
-        translations_str = match.group(1)
-
-        # Convert the string list to an actual Python list
-        if translations_str.strip().startswith('["') or translations_str.strip().startswith("['"):
-            translations_str = translations_str.strip()[1:-1]  # Remove outer quotes
-
-        # Now split the cleaned string
-        translations_list = re.findall(r'"([^"]+)"', translations_str)
+        list_str = final_translation.split("result: ")[1]
+        list_str = list_str.split("]")[0] + "]"
+        translations_list = ast.literal_eval(list_str)
         self.context_history.append(translations_list)
         return translations_list
     
