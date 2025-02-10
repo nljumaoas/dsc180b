@@ -37,3 +37,16 @@ conda env create -f environment.yml
 │   └── <whatever important files we need>
 └── <any other imports>
 ```
+
+5. Download the LLM to be run as agents locally through Ollama if running the project without API key. This include downloading Ollama first, then the individual agent models:
+```bash
+wget https://ollama.com/install.sh
+bash install.sh
+ollama pull llava
+ollama pull llama3.1:8b
+```
+
+6. Before running the pipeline, interact with Ollama from your local machine by running it as a server. Then run the pipeline from a new terminal:
+```bash
+ollama serve
+```
