@@ -3,38 +3,72 @@ from processing_stage.processing import PageProcessor
 from TypeSetting_V1.typesetting import TextBubbleTypesetter
 import platform
 
+class Pipeline():
+    def __init__(self):
+        self.page_processor = PageProcessor('../Manga-Text-Segmentation/model.pkl')
+        self.translator = Translator()
+        self.typesetter = self.initialize_typesetter()
+
+    def initialize_typesetter(self):
+        if platform.system() == "Linux":
+            font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        elif platform.system() == "Darwin":
+            font = "/System/Library/Fonts/Supplemental/Arial.ttf"
+        elif platform.system() == "Windows":
+            font = "/C:/Windows/Fonts/arial.ttf"
+        return TextBubbleTypesetter(font)
+
+    def process_translate_typeset(self, image_path):
+        # Process the page
+        image_content = self.page_processor.process_page(image_path)
+
+        # Translate text
+        image_path = image_content["image_paths"]['ja']
+        texts = [d['text_ja'] for d in image_content['text']]
+        panels_coordinates = image_content['frame']
+        translation_result = self.translator.generate_translation(texts, "English", image_path, panels_coordinates)
+
+        # Compile results
+        result = {"image": image_path, "text": []}
+        for i, content in enumerate(image_content['text']):
+            updated = content
+            updated['text_translated'] = translation_result[i]
+            result['text'].append(updated)
+
+        # Typeset translated text
+        self.typesetter.typeset_text_bubbles(result, "example_output.jpg")
+        return "example_output.jpg"
+
 def main(image_path):
-    # page processing stage
-    processor = PageProcessor('../Manga-Text-Segmentation/model.pkl')
-    image_content = processor.process_page(image_path)
+        '''
+        # page processing stage
+        processor = PageProcessor('../Manga-Text-Segmentation/model.pkl')
+        image_content = processor.process_page(image_path)
 
-    # translation stage
-    image_path = image_content["image_paths"]['ja']
-    texts = []
-    for d in image_content['text']:
-        texts.append(d['text_ja'])
-    panels_coordinates = image_content['frame']
-    target_language = "English"
-    translator_system = Translator()
-    translation_result = translator_system.generate_translation(texts, target_language, image_path, panels_coordinates)
+        # translation stage
+        image_path = image_content["image_paths"]['ja']
+        texts = []
+        for d in image_content['text']:
+            texts.append(d['text_ja'])
+        panels_coordinates = image_content['frame']
+        target_language = "English"
+        translator_system = Translator()
+        translation_result = translator_system.generate_translation(texts, target_language, image_path, panels_coordinates)
 
-    result = {"image": image_path, "text": []}
-    for i in range(len(image_content['text'])):
-        updated = image_content['text'][i]
-        updated['text_translated'] = translation_result[i]
-        result['text'].append(updated)
+        result = {"image": image_path, "text": []}
+        for i in range(len(image_content['text'])):
+            updated = image_content['text'][i]
+            updated['text_translated'] = translation_result[i]
+            result['text'].append(updated)
 
 
-    # Typesetting Stage
-    if platform.system() == "Linux":
-        font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    elif platform.system() == "Darwin":
-        font = "/System/Library/Fonts/Supplemental/Arial.ttf"
-    elif platform.system()=="Windows":
-        font = "/C:/Windows/Fonts/arial.ttf"
-    typesetter = TextBubbleTypesetter(font)
-    typesetter.typeset_text_bubbles(result, "output_image.jpg")
-
+        # Typesetting Stage
+        typesetter = TextBubbleTypesetter("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+        typesetter.typeset_text_bubbles(result, "output_image02.jpg")
+        '''
+        pipeline_obj = Pipeline()
+        output = pipeline_obj.process_translate_typeset(image_path)
+        
 if __name__ == "__main__":
     import argparse
 
