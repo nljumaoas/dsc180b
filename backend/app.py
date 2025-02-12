@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from pipeline import Pipeline
 
 app = Flask(__name__, static_folder="build")  # Serve React app from the 'build' folder
 CORS(app)  # Enable CORS for frontend communication
@@ -9,6 +10,12 @@ CORS(app)  # Enable CORS for frontend communication
 # Directory to store uploaded images
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Create the folder if it doesn't exist
+OUTPUT_FOLDER = "outputs"
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)  # Create the folder if it doesn't exist
+chat_history = []  # Initialize chat history
+
+pipeline_instance = Pipeline()
+print("Pipeline created!") # for testing purposes
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -34,19 +41,40 @@ def upload_image():
 
     # Save the file securely
     filename = secure_filename(file.filename)
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(file_path)
+    input_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(input_path)
 
-    # Return the path to the saved file
+    # Process the image using the Pipeline class
+    try:
+        output_filename = f"processed_{filename}"  # Generate a unique name for the processed image
+        output_path = os.path.join(OUTPUT_FOLDER, output_filename)
+        global chat_history
+        output_name, chat_history = pipeline_instance.process_translate_typeset(input_path, output_path)  # Call the processing function
+    except Exception as e:
+        return jsonify({"error": f"Image processing failed: {str(e)}"}), 500
+
+    # Return the paths to the original and processed images
     return jsonify({
-        "message": "File uploaded successfully",
-        "file_path": file_path
+        "message": "File uploaded and processed successfully",
+        "original_image": f"/uploads/{filename}",
+        "chat_messages": chat_history,
+        "processed_image": f"../backend/outputs/{output_filename}"
     }), 200
+
+@app.route("/outputs/<filename>")
+def processed_file(filename):
+    return send_from_directory(OUTPUT_FOLDER, filename)
 
 # Serve uploaded files
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
+
+# API route to fetch chat messages
+@app.route("/api/chat", methods=["GET"])
+def get_chat_messages():
+    # This would return the current chat messages stored in memory
+    return jsonify({"messages": chat_history}), 200
 
 # Fallback route to serve React app
 @app.route("/", defaults={"path": ""})
