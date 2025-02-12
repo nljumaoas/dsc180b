@@ -100,14 +100,21 @@ class Translator():
         """
 
         user.initiate_chat(manager,  message=task)
+        chat_history = groupchat.messages
         final_translation = groupchat.messages[-1]['content']
+        try:
+            print(chat_history[0]['sender'])
+            print(chat_history[-1]['sender'])
+            print(chat_history[0].keys())
+        except:
+            print(chat_history[0])
         # print('finished translation.')
         # Look for 'result: [...]' in the response
         list_str = final_translation.split("result: ")[1]
         list_str = list_str.split("]")[0] + "]"
         translations_list = ast.literal_eval(list_str)
         self.context_history.append(translations_list)
-        return translations_list
+        return translations_list, chat_history
     
 if __name__ == "__main__":
     with open("content.json", "r") as file:

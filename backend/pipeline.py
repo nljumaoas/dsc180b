@@ -5,7 +5,7 @@ import platform
 
 class Pipeline():
     def __init__(self):
-        self.page_processor = PageProcessor('../Manga-Text-Segmentation/model.pkl')
+        self.page_processor = PageProcessor('../../Manga-Text-Segmentation/model.pkl')
         self.translator = Translator()
         self.typesetter = self.initialize_typesetter()
 
@@ -18,26 +18,43 @@ class Pipeline():
             font = "/C:/Windows/Fonts/arial.ttf"
         return TextBubbleTypesetter(font)
 
-    def process_translate_typeset(self, image_path):
+    def process_translate_typeset(self, image_path, output_path):
         # Process the page
-        image_content = self.page_processor.process_page(image_path)
+        try:
+            image_content = self.page_processor.process_page(image_path)
+            print("Pipeline call completed process_page for text")
+        except Exception as e:
+            print(str(e))
+            print("issue with pipeline process page")
 
         # Translate text
         image_path = image_content["image_paths"]['ja']
         texts = [d['text_ja'] for d in image_content['text']]
         panels_coordinates = image_content['frame']
-        translation_result = self.translator.generate_translation(texts, "English", image_path, panels_coordinates)
+        try:
+            translation_result, chat_history = self.translator.generate_translation(texts, "English", image_path, panels_coordinates)
+        except Exception as e:
+            print(e)
+            print("issue with pipeline generate_translation")
 
         # Compile results
         result = {"image": image_path, "text": []}
-        for i, content in enumerate(image_content['text']):
-            updated = content
-            updated['text_translated'] = translation_result[i]
-            result['text'].append(updated)
+        try:
+            for i, content in enumerate(image_content['text']):
+                updated = content
+                updated['text_translated'] = translation_result[i]
+                result['text'].append(updated)
+        except Exception as e:
+            print(e)
+            print("issue with organizing output of translation generated")
 
         # Typeset translated text
-        self.typesetter.typeset_text_bubbles(result, "example_output.jpg")
-        return "example_output.jpg"
+        try:
+            self.typesetter.typeset_text_bubbles(result, output_path)
+        except Exception as e:
+            print(e)
+            print("issue with pipeline typesetting")
+        return output_path, chat_history
 
 def main(image_path):
         '''

@@ -14,7 +14,7 @@ import einops
 import shapely
 from processing_stage.eval_utilities import Timer
 
-sys.path.insert(0, '../Manga-Text-Segmentation/code/')
+sys.path.insert(0, '../../Manga-Text-Segmentation/code/')
 
 class TextExtractor(ABC):
 
@@ -46,15 +46,18 @@ class PageProcessor(TextExtractor):
         cluster_timer.start()
 
         img = open_image(path_to_img)
+        print("opened image for processing.")
 
         # Resize the image if sizes not divisible by 2
         size_w, size_h = img.size
         size_w -= size_w % 2
         size_h -= size_h % 2
         img = Image(img.data[:, 0:size_w, 0:size_h])
+        print("resized the image")
 
         # Get pixelwise character position prediction
         pred = self.text_segmentation_model.predict(img)[0]
+        print("Get pixelwise character position prediction")
         
         # replacing unpad_tensor functionality temporarily
         # mask = unpad_tensor(pred.px, img.px.shape)[0]
@@ -62,6 +65,7 @@ class PageProcessor(TextExtractor):
 
         # Cluster text from the same speech bubbles
         sample = mask.nonzero().tolist()
+        print("clustered text from same bubble")
 
         if len(sample) == 0:
             return []
@@ -70,7 +74,9 @@ class PageProcessor(TextExtractor):
         neighbours = 2
         optics_instance = optics(sample, radius, neighbours)
         optics_instance.process() 
+        print("optics_instance processed")
         clusters_ind = optics_instance.get_clusters()
+        print("optics instance got clusters")
         clusters = [[sample[i] for i in indexes] for indexes in clusters_ind]
         
 

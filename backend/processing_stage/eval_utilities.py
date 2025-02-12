@@ -1,5 +1,6 @@
 import time
 from PIL import Image as Img
+import numpy as np
 
 class Timer:
     def __init__(self):
