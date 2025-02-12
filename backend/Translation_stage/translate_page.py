@@ -4,6 +4,8 @@ import ollama
 import base64
 import json
 import ast
+import regex as re
+#from bert_score import score
 
 os.environ["AUTOGEN_USE_DOCKER"] = "false"
 
@@ -89,7 +91,7 @@ class Translator():
         print('set up group chat.')
         task=f"""
         Please translate dialogues this manga page to {target_language} while preserving the nuance and tone emotion. 
-        Don't omit or combine any item in the original list passed in for translation, the output translation should have {len(text)} items of lines.
+        **Do not combine, omit, or split any verses**. The **number of verses in the translation must exactly match** the number of verses provided ({len(text)} verses).
         For verses with negative emotion, try best to translate:
 
         {text}
@@ -100,21 +102,51 @@ class Translator():
         """
 
         user.initiate_chat(manager,  message=task)
-        chat_history = groupchat.messages
         final_translation = groupchat.messages[-1]['content']
-        try:
-            print(chat_history[0]['sender'])
-            print(chat_history[-1]['sender'])
-            print(chat_history[0].keys())
-        except:
-            print(chat_history[0])
-        # print('finished translation.')
-        # Look for 'result: [...]' in the response
-        list_str = final_translation.split("result: ")[1]
-        list_str = list_str.split("]")[0] + "]"
-        translations_list = ast.literal_eval(list_str)
+        print('finished translation.')
+        # print("final reply: ", final_translation)
+        translations_list = self.extract_trans_result(final_translation)
+        if len(translations_list) != len(text):
+            translations_list = self.validate_translation(text, translations_list)
         self.context_history.append(translations_list)
-        return translations_list, chat_history
+        return translations_list
+    
+    def extract_trans_result(self, final_message):
+        # Look for 'result: [...]' in the response
+        list_str = final_message.split("result: ")[1]
+        list_str = list_str.split("]")[0] + "]"
+        try:
+            translations_list = ast.literal_eval(list_str)
+        except SyntaxError:
+            fixed = re.sub(r"(?<=\W)'\s*(.*?)\s*'(?=\W)", r'"\1"', list_str)
+            translations_list = ast.literal_eval(fixed)
+        return translations_list
+    
+    def validate_translation(self, input_verses, output_verses):
+        if len(input_verses) != len(output_verses):
+            print("Mismatch detected! Re-prompting for correction...")
+            # Modify the prompt to emphasize correction
+            new_prompt = f'''
+                The translation must have the **exact same number of verses** as the input.
+                Input has {len(input_verses)} verses while your output has a mismatch with {len(output_verses)} verses.
+                Your current output: {output_verses}
+                Your input for reference: {input_verses}
+                Please correct the output and return the result in the format like this: result: ["How are you", "what's up"]
+            '''
+            # Re-run the model with the new prompt
+            corrected_output = self.agent3.chat(messages=[{"role": "user", "content": new_prompt}])
+            reformated_output = self.extract_trans_result(corrected_output['message']['content'])
+            return reformated_output
+        return output_verses
+    '''
+    def translation_eval_bert_score(self, generated_translation, reference_translation):
+        # the score for each individual verse (P=how much is relevant, R = how much is captured, F1=balance between two)
+        P, R, F1 = score(generated_translation, reference_translation, lang="en", rescale_with_baseline=True)
+        # the overall score for the entire page
+        average_f1 = sum(F1) / len(F1)
+        average_P = sum(P) / len(P)
+        average_R = sum(R) / len(R)
+        return P, R, F1, average_P, average_R, average_f1'''
     
 if __name__ == "__main__":
     with open("content.json", "r") as file:
@@ -142,33 +174,3 @@ if __name__ == "__main__":
     with open('result.json', 'w') as json_file:
         json.dump(result, json_file, indent=4)
 
-SYSTEM_PROMPT = """
-You are a knowledgeable and professional translator that translate content assigned to you based on the requirement.
-
-Constraints:
-- Be accurate and precise.
-- Answer briefly, in few words.
-- Be careful and make sure the translated text are sementically correct and free from gramatical errors in the language translate into.
-- Think step by step.
-"""
-
-SYSTEM_PROMPT_2 = """
-You are a context checker professional at the cultural context of different languages. 
-Verify the translation for accuracy and nuance, adjusting for cultural/contextual appropriateness while also consider the visual context for current page and previous content of story for cohesiveness.
-
-Constraints:
-- Be accurate and precise.
-- Answer briefly, in few words.
-- Think step by step.
-"""
-
-SYSTEM_PROMPT_3 = """
-You are a experienced and professional senior editor. Refine the text for fluency and readability in translated language before finalizing.
-If you are satisfied with the translation, reply TERMINATE. Otherwise, provide feedback.
-
-Constraints:
-- Be critical when evaluating the translation shown to you.
-- Be accurate and precise on advise and feedback.
-- Answer briefly, in few words.
-- Think step by step.
-"""
