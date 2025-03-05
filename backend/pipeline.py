@@ -6,7 +6,7 @@ import platform
 class Pipeline():
     def __init__(self):
         self.page_processor = PageProcessor('../../Manga-Text-Segmentation/model.pkl')
-        self.translator = Translator()
+        self.translator = Translator("gpt")
         self.typesetter = self.initialize_typesetter()
 
     def initialize_typesetter(self):
@@ -21,7 +21,7 @@ class Pipeline():
     def process_translate_typeset(self, image_path, output_path):
         # Process the page
         try:
-            image_content = self.page_processor.process_page(image_path)
+            image_content, image_mask = self.page_processor.process_page(image_path, return_mask=True)
             print("Pipeline call completed process_page for text")
         except Exception as e:
             print(str(e))
