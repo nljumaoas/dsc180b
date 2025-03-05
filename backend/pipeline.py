@@ -56,7 +56,7 @@ class Pipeline():
             print("issue with pipeline typesetting")
         return output_path, chat_history
 
-def main(image_path):
+def main(image_path, output_path):
         '''
         # page processing stage
         processor = PageProcessor('../Manga-Text-Segmentation/model.pkl')
@@ -84,7 +84,7 @@ def main(image_path):
         typesetter.typeset_text_bubbles(result, "output_image02.jpg")
         '''
         pipeline_obj = Pipeline()
-        output = pipeline_obj.process_translate_typeset(image_path)
+        output = pipeline_obj.process_translate_typeset(image_path, output_path)
         
 if __name__ == "__main__":
     import argparse
@@ -92,6 +92,7 @@ if __name__ == "__main__":
     # Parse the configuration file from command-line arguments
     parser = argparse.ArgumentParser(description="Translate an image with text by passing in image path.")
     parser.add_argument("--image_path", type=str, required=True, help="Path to the image file.")
+    parser.add_argument("--output_path", type=str, required=True, help="Path to save output file.")
     args = parser.parse_args()
 
-    main(args.image_path)
+    main(args.image_path, args.output_path)
