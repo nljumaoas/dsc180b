@@ -1,12 +1,12 @@
-from Translation_stage.translate_page import Translator
+from Translation_stage.translate_page_fast import TranslatorFast
 from processing_stage.processing import PageProcessor
-from TypeSetting_V1.typesetting import TextBubbleTypesetter
+from Typesetting_stage.typesettingnew import TextBubbleTypesetter
 import platform
 
 class Pipeline():
     def __init__(self):
         self.page_processor = PageProcessor('../../Manga-Text-Segmentation/model.pkl')
-        self.translator = Translator("gpt")
+        self.translator = TranslatorFast("gpt")
         self.typesetter = self.initialize_typesetter()
 
     def initialize_typesetter(self):
@@ -50,7 +50,7 @@ class Pipeline():
 
         # Typeset translated text
         try:
-            self.typesetter.typeset_text_bubbles(result, output_path)
+            self.typesetter.typeset_text_bubbles(result, output_path, image_mask)
         except Exception as e:
             print(e)
             print("issue with pipeline typesetting")

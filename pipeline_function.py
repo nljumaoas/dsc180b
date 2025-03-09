@@ -1,13 +1,13 @@
 from Translation_stage.translate_page import Translator
 from processing_stage.processing import PageProcessor
-from TypeSetting_V1.typesetting import TextBubbleTypesetter
+from Typesetting_stage.typesettingnew import TextBubbleTypesetter
 import platform
 
 def main(image_path):
     # page processing stage
     processor = PageProcessor('../Manga-Text-Segmentation/model.pkl')
     image_content = processor.process_page(image_path)
-
+    
     # translation stage
     image_path = image_content["image_paths"]['ja']
     texts = []
@@ -23,8 +23,7 @@ def main(image_path):
         updated = image_content['text'][i]
         updated['text_translated'] = translation_result[i]
         result['text'].append(updated)
-
-
+    
     # Typesetting Stage
     if platform.system() == "Linux":
         font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -33,7 +32,7 @@ def main(image_path):
     elif platform.system()=="Windows":
         font = "/C:/Windows/Fonts/arial.ttf"
     typesetter = TextBubbleTypesetter(font)
-    typesetter.typeset_text_bubbles(result, "output_image.jpg")
+    typesetter.typeset_text_bubbles(result, "output_image.jpg", image_mask)
 
 if __name__ == "__main__":
     import argparse
