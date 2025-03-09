@@ -1,12 +1,12 @@
-from Translation_stage.translate_page import Translator
+from Translation_stage.translate_page_fast import TranslatorFast
 from processing_stage.processing import PageProcessor
-from TypeSetting_V1.typesetting import TextBubbleTypesetter
+from Typesetting_stage.typesettingnew import TextBubbleTypesetter
 import platform
 
 class Pipeline():
     def __init__(self):
         self.page_processor = PageProcessor('../../Manga-Text-Segmentation/model.pkl')
-        self.translator = Translator()
+        self.translator = TranslatorFast("gpt")
         self.typesetter = self.initialize_typesetter()
 
     def initialize_typesetter(self):
@@ -21,7 +21,7 @@ class Pipeline():
     def process_translate_typeset(self, image_path, output_path):
         # Process the page
         try:
-            image_content = self.page_processor.process_page(image_path)
+            image_content, image_mask = self.page_processor.process_page(image_path, return_mask=True)
             print("Pipeline call completed process_page for text")
         except Exception as e:
             print(str(e))
@@ -50,13 +50,13 @@ class Pipeline():
 
         # Typeset translated text
         try:
-            self.typesetter.typeset_text_bubbles(result, output_path)
+            self.typesetter.typeset_text_bubbles(result, output_path, image_mask)
         except Exception as e:
             print(e)
             print("issue with pipeline typesetting")
         return output_path, chat_history
 
-def main(image_path):
+def main(image_path, output_path):
         '''
         # page processing stage
         processor = PageProcessor('../Manga-Text-Segmentation/model.pkl')
@@ -84,7 +84,7 @@ def main(image_path):
         typesetter.typeset_text_bubbles(result, "output_image02.jpg")
         '''
         pipeline_obj = Pipeline()
-        output = pipeline_obj.process_translate_typeset(image_path)
+        output = pipeline_obj.process_translate_typeset(image_path, output_path)
         
 if __name__ == "__main__":
     import argparse
@@ -92,6 +92,7 @@ if __name__ == "__main__":
     # Parse the configuration file from command-line arguments
     parser = argparse.ArgumentParser(description="Translate an image with text by passing in image path.")
     parser.add_argument("--image_path", type=str, required=True, help="Path to the image file.")
+    parser.add_argument("--output_path", type=str, required=True, help="Path to save output file.")
     args = parser.parse_args()
 
-    main(args.image_path)
+    main(args.image_path, args.output_path)

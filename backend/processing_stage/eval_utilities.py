@@ -1,13 +1,24 @@
 import time
 from PIL import Image as Img
 import numpy as np
+import matplotlib as plt
+from difflib import SequenceMatcher 
 
 class Timer:
     def __init__(self):
         self.start_time = None
+        self.lap_time = None
 
     def start(self):
         self.start_time = time.time()
+        self.lap_start = time.time()
+
+    def lap(self):
+        if self.start_time is None:
+            raise ValueError("Timer not started. Call start() before check().")
+        lap_time = time.time() - self.lap_start
+        self.lap_start = time.time()
+        return lap_time
 
     def stop(self):
         if self.start_time is None:
@@ -15,22 +26,6 @@ class Timer:
         elapsed_time = time.time() - self.start_time
         self.start_time = None  # Reset timer
         return elapsed_time
-
-import time
-
-class Timer:
-    def __init__(self):
-        self.start_time = None
-
-    def start(self):
-        self.start_time = time.time()
-
-    def stop(self):
-        if self.start_time is None:
-            raise ValueError("Timer not started. Call start() before stop().")
-        elapsed_time = time.time() - self.start_time
-        self.start_time = None  # Reset timer
-        return np.round(elapsed_time, 2)
 
 def oma_text_isolator(book, page):
     """
