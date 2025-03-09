@@ -1,6 +1,6 @@
 from Translation_stage.translate_page_fast import TranslatorFast
 from processing_stage.processing import PageProcessor
-from Typesetting_stage.typesettingnew import TextBubbleTypesetter
+from Typesetting_stage.typesetting import TextBubbleTypesetter
 import platform
 
 class Pipeline():

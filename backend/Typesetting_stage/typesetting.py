@@ -1,29 +1,93 @@
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-import textwrap
+import torch
+import cv2
+import os
 
 class TextBubbleTypesetter:
-    def __init__(self, font_path, base_size=22):
+    """
+    Class for typesetting translated text into manga speech bubbles.
+    
+    This class handles the replacement of original text in manga with translated text.
+    It uses a simple rectangular masking approach to remove original text and then
+    adds translated text with proper formatting and alignment within each bubble.
+    The text boxes are slightly expanded horizontally to provide better text fitting.
+    """
+    
+    def __init__(self, font_path):
+        """
+        Initialize the typesetter with a font path.
+        
+        Parameters:
+        -----------
+        font_path : str
+            Path to the font file.
+        """
         self.font_path = font_path
-        self.base_size = base_size
-
-    def format_text_for_bubble(self, text, max_width, max_height, font_size=None):
+        self.base_font_size = 22
+        self.margin = 5
+    
+    def _mask_text(self, image_path, input_data):
         """
-        Format text by wrapping and adjusting font size if necessary.
+        Mask text in manga by drawing white rectangles over the bubble areas.
+        
+        Parameters:
+        -----------
+        image_path : str
+            Path to the manga image
+        input_data : list of dict
+            List of speech bubble data with keys 'x', 'y', 'w', 'h', 'text_ja', 'text_en'
+                
+        Returns:
+        --------
+        PIL.Image
+            The masked image with original text removed via white rectangles
         """
-        font_size = font_size or self.base_size
+        # Open image
+        img = Image.open(image_path).convert("RGB")
+        
+        # Create a drawing object
+        draw = ImageDraw.Draw(img)
+        
+        # Process each bubble
+        for bubble in input_data:
+            x, y, w, h = bubble["x"], bubble["y"], bubble["w"], bubble["h"]
+            # Draw a white rectangle to mask the area
+            draw.rectangle([(x, y), (x + w, y + h)], fill='white')
+        
+        return img
+    
+    def _format_text_for_bubble(self, text, max_width, max_height):
+        """
+        Format text to fit within a bubble with line wrapping and font size adjustment.
+        
+        Parameters:
+        -----------
+        text : str
+            Text to format
+        max_width : int
+            Maximum width available for text
+        max_height : int
+            Maximum height available for text
+            
+        Returns:
+        --------
+        tuple
+            (lines, font_size) where lines is a list of text lines and font_size is the final size
+        """
         draw = ImageDraw.Draw(Image.new('RGB', (1, 1)))
-        font = ImageFont.truetype(self.font_path, font_size)
-
-        # Step 1: Wrap text based on width
+        font = ImageFont.truetype(self.font_path, self.base_font_size)
+        
+        # 1. First attempt simple text wrapping
         words = text.split()
         lines = []
         current_line = []
-
+        
         for word in words:
             test_line = ' '.join(current_line + [word])
             bbox = draw.textbbox((0, 0), test_line, font=font)
             text_width = bbox[2] - bbox[0]
-
+            
             if text_width <= max_width:
                 current_line.append(word)
             else:
@@ -31,68 +95,127 @@ class TextBubbleTypesetter:
                     lines.append(' '.join(current_line))
                     current_line = [word]
                 else:
-                    current_line = [word]  # For long words
-
+                    # If the word is too long, consider breaking the word or adjusting the font size
+                    current_line = [word]
+        
         if current_line:
             lines.append(' '.join(current_line))
-
-        # Step 2: Check total height with line spacing
+        
+        # 2. Check if the total height fits
         total_height = 0
-        line_spacing = font_size * 0.3
+        line_spacing = self.base_font_size * 0.3  # 30% line spacing
+        
         for line in lines:
             bbox = draw.textbbox((0, 0), line, font=font)
             total_height += (bbox[3] - bbox[1]) + line_spacing
 
-        # Step 3: If height exceeds max, reduce font size recursively
-        if total_height > max_height:
-            min_size = int(font_size * 0.8)
-            return self.format_text_for_bubble(text, max_width, max_height, min_size)
-
-        return lines, font_size
-
-    def typeset_text_bubbles(self, input_data, output_path):
+        # 3. If height exceeds, consider reducing font size appropriately
+        if total_height > max_height and self.base_font_size > 14:
+            # Calculate new size based on ratio
+            ratio = max_height / total_height
+            new_size = max(int(self.base_font_size * ratio * 0.95), 14)  # Minimum size of 10
+            
+            # Save the original base size
+            original_base_size = self.base_font_size
+            
+            # Temporarily change base size
+            self.base_font_size = new_size
+            
+            # Recursively try with smaller font
+            result = self._format_text_for_bubble(text, max_width, max_height)
+            
+            # Restore the original base size
+            self.base_font_size = original_base_size
+            
+            return result
+        
+        return lines, self.base_font_size
+    
+    def _add_translated_text(self, image, input_data):
         """
-        Apply text formatting and typesetting on the provided image.
-        input_data: Dictionary containing image path and text bubble data.
-        output_path: Path to save the output image.
+        Add translated text to the image using bubble coordinates with horizontal expansion.
+        
+        This method centers text within each bubble and applies a symmetric horizontal
+        expansion of 16 pixels (8 pixels on each side) to give text more room to fit.
+        Text is formatted to fit the expanded width while maintaining the original height.
+        
+        Parameters:
+        -----------
+        image : PIL.Image
+            The masked image
+        input_data : list of dict
+            List of bubble data with coordinates and translations
+                
+        Returns:
+        --------
+        PIL.Image
+            Image with translated text added and centered in expanded bubbles
         """
-        # Load image and drawing context
-        image = Image.open(input_data["image"])
         draw = ImageDraw.Draw(image)
-
-        # Process each text bubble
-        for bubble in input_data["text"]:
-            x, y, w, h = bubble["x"], bubble["y"], bubble["w"], bubble["h"]
-            draw.rectangle([(x, y), (x + w, y + h)], fill='white')  # Clear area
-
-            # Get the translated text
-            text = bubble["text_translated"]
-
-            # Format text within the bubble
-            lines, final_size = self.format_text_for_bubble(
-                text,  # Translated text
-                w * 0.9,  # 10% padding horizontally
-                h * 0.9,  # 10% padding vertically
-                self.base_size
+        
+        # Define a constant width expansion (in pixels)
+        constant_width_expansion = 16  # Add 20 pixels total (10 on each side)
+        
+        # Process each text area
+        for bubble in input_data:
+            # Get bubble coordinates and translated text
+            x, y = bubble["x"], bubble["y"]
+            w, h = bubble["w"], bubble["h"]
+            
+            # Calculate expanded width with constant expansion
+            expanded_width = w + constant_width_expansion
+            
+            # Calculate the new x-coordinate to maintain center point
+            original_center_x = x + (w // 2)
+            new_x = original_center_x - (expanded_width // 2)
+            
+            # Ensure expanded bubble stays within image bounds
+            img_width, img_height = image.size
+            if new_x < 0:
+                new_x = 0
+            if new_x + expanded_width > img_width:
+                expanded_width = img_width - new_x
+            
+            # Determine which text field to use (text_en or text_translated)
+            if "text_translated" in bubble:
+                text = bubble["text_translated"]
+            elif "text_en" in bubble:
+                text = bubble["text_en"]
+            else:
+                continue  # Skip if no translation is found
+            
+            # Format text to fit in the expanded bubble
+            lines, final_size = self._format_text_for_bubble(
+                text,
+                expanded_width * 0.9,  # 90% of expanded bubble width
+                h * 0.9,               # 90% of original bubble height
             )
-
+            
+            # Load the font at the final determined size
             font = ImageFont.truetype(self.font_path, final_size)
-
-            # Calculate total height for vertical centering
-            total_height = sum(
-                [draw.textbbox((0, 0), line, font=font)[3] - draw.textbbox((0, 0), line, font=font)[1] for line in lines]
-            ) + (len(lines) - 1) * (final_size * 0.3)
-
-            # Calculate starting y-coordinate
-            start_y = y + (h - total_height) // 2
-
-            # Draw each line centered horizontally
-            current_y = start_y
+            
+            # Calculate total text height (for vertical centering)
+            total_height = 0
+            line_spacing = final_size * 0.3
             for line in lines:
                 bbox = draw.textbbox((0, 0), line, font=font)
+                total_height += (bbox[3] - bbox[1]) + line_spacing
+            total_height -= line_spacing  # Subtract the line spacing added for the last line
+            
+            # Calculate the starting y-coordinate to vertically center the text
+            start_y = y + (h - total_height) // 2
+            
+            # Draw each line of text
+            current_y = start_y
+            for line in lines:
+                # Get the width of the current line for horizontal centering
+                bbox = draw.textbbox((0, 0), line, font=font)
                 text_width = bbox[2] - bbox[0]
-                text_x = x + (w - text_width) // 2
-
+                
+                # Center text in the expanded width
+                text_x = new_x + (expanded_width - text_width) // 2
+                
+                # Draw text (with outline)
                 draw.text(
                     (text_x, current_y),
                     line,
@@ -101,24 +224,77 @@ class TextBubbleTypesetter:
                     stroke_width=2,
                     stroke_fill='white'
                 )
-                current_y += (bbox[3] - bbox[1]) + (final_size * 0.3)
-
-        # Save the modified image
-        image.save(output_path)
+                
+                # Update the y-coordinate for the next line
+                current_y += (bbox[3] - bbox[1]) + line_spacing
+        
+        return image
+    
+    def typeset_text_bubbles(self, result, output_path, image_mask=None):
+        """
+        Main method to typeset translated text into manga speech bubbles.
+        
+        This method first masks the original text with white rectangles based on
+        bubble coordinates, then adds translated text with appropriate formatting.
+        The image_mask parameter is kept for backward compatibility but is no longer used.
+        
+        Parameters:
+        -----------
+        result : dict
+            Dictionary containing image path and text data
+            Format: {"image": image_path, "text": [bubble_data, ...]}
+            where bubble_data contains x, y, w, h, text_ja, and text_translated keys
+        output_path : str
+            Path to save the typeset image
+        image_mask : torch.Tensor or np.ndarray, optional
+            Binary mask indicating text pixels (no longer used, kept for compatibility)
+            
+        Returns:
+        --------
+        str
+            Path to the typeset image
+        """
+        # Extract image path and bubble data
+        image_path = result["image"]
+        bubble_data = result["text"]
+        
+        # if image_mask is not None:
+        #     # Step 1: Mask the original text
+        #     masked_img = self._mask_text(image_path, image_mask, bubble_data)
+        # else:
+        #     # If no mask provided, just load the image
+        #     masked_img = Image.open(image_path).convert("RGB")
+        
+        # Step 1: Mask the original text (new method without using mask)
+        masked_img = self._mask_text(image_path, bubble_data)
+        
+        # Step 2: Add translated text using bubble coordinates
+        translated_img = self._add_translated_text(masked_img, bubble_data)
+        
+        # Save the final typeset image
+        translated_img.save(output_path)
+        print(f"Typeset image saved to: {output_path}")
+        
         return output_path
-
-# Example usage:
-if __name__ == "__main__":
-    typesetter = TextBubbleTypesetter("/System/Library/Fonts/Supplemental/Arial.ttf")
-    input_data = {
-        "image": "001.jpg",
-        "text": [
-            {"x": 172, "y": 194, "w": 126, "h": 229, "text_ja": "だからっ", "text_translated": "I'm telling you!!"},
-            {"x": 692, "y": 519, "w": 98, "h": 184, "text_ja": "知らないって言ってるだろっ", "text_translated": "I don't know what you're talking about!"},
-            {"x": 363, "y": 754, "w": 91, "h": 178, "text_ja": "そんな借金なんて!", "text_translated": "I don't owe you!"},
-            {"x": 233, "y": 483, "w": 78, "h": 153, "text_ja": "そうは言ってもなぁ", "text_translated": "Well, I'm sorry..."},
-            {"x": 97, "y": 855, "w": 106, "h": 198, "text_ja": "レーネ...", "text_translated": "Lene..."}
-        ]
-    }
-
-    typesetter.typeset_text_bubbles(input_data, "output_image.jpg")
+    
+    def set_font_size(self, size):
+        """
+        Set the base font size.
+        
+        Parameters:
+        -----------
+        size : int
+            Base font size
+        """
+        self.base_font_size = size
+    
+    def set_margin(self, margin):
+        """
+        Set the margin for text masking.
+        
+        Parameters:
+        -----------
+        margin : int
+            Margin to add around text regions
+        """
+        self.margin = margin
