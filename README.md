@@ -22,7 +22,7 @@ While this pipeline is capable of running locally, it is designed to have user i
 wget -O model.pkl https://github.com/juvian/Manga-Text-Segmentation/releases/download/v1.0/fold.0.-.final.refined.model.2.pkl
 ```
 
-3. Navigate to the `dsc180b` directory and install the required packages in a conda environment.
+3. Navigate to the `dsc180b/backend/processing_stage` directory and install the required packages in a conda environment.
 ```conda
 conda env create -f environment.yml
 ```
