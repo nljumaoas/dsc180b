@@ -9,9 +9,7 @@ This project features a manga translation pipeline that allows Japanese text sou
 2. **Translation:** Leverages a multi-agent framework designed to produce high-quality, context-aware translations, maintaining internal consistency even across large translation projects. Improves upon conventional machine translation by utilizing visual context as well as multi-agent methods to preserve subleties such as variations in text sizing and localization of native idiosyncrasies.
 3. **Typesetting:** Removes identified Japanese text and replaces it with the framework output, resulting in a translated English page that emphasizes readability while preserving the original style and format.
 
-While this pipeline is capable of running locally, it is designed to have user interaction conducted through a local Flask frontend that uses API calls to connect to a remote server, allowing computation to be offloaded in order to minimize latency while maintaining an intuitive user experience. 
-
-*(Code Checkpoint: the pipeline can currently be run locally, Flask/remote server integration will be implemented for a live demo at the capstone showcase)*
+While this pipeline is capable of running locally, it is designed to have user interaction conducted through a local Flask frontend that uses API calls to connect to a remote server, allowing computation to be offloaded in order to minimize latency while maintaining an intuitive user experience. A link to our static website can be found [here](https://nljumaoas.github.io/multiagent-translation/).
 
 ## Setup
 
