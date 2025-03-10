@@ -40,11 +40,29 @@ conda env create -f environment.yml
 ```bash
 wget https://ollama.com/install.sh
 bash install.sh
-ollama pull llava
+ollama serve
+ollama pull llava:7b
 ollama pull llama3.1:8b
+```
+If you see warnings on unable to detect gpu after installed ollama, run:
+```bash
+apt-get update
+apt-get install pciutils
 ```
 
 6. Before running the pipeline, interact with Ollama from your local machine by running it as a server. Then run the pipeline from a new terminal:
 ```bash
 ollama serve
+ollama pull llava:7b
+ollama pull llama3.1:8b
+```
+
+# Launching Demo
+Make sure the environment is setup first, and store your openAI api key to the environment:
+```bash
+export API_KEY=<your key>
+```
+Then navigate to backend folder, launch the demo:
+```bash
+python app.py
 ```
