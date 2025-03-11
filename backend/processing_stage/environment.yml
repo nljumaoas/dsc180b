@@ -14,9 +14,15 @@ dependencies:
   - torchvision==0.15.2
   - cpuonly # for local use only since gpu sad
   - pip:
+      - autogen==0.7.3
       - dataset==1.6.2
       - fastai==1.0.60
+      - flask==3.1.0
+      - flask-cors==5.0.0
       - manga-ocr==0.1.11
+      - ollama==0.4.7
+      - openai==1.61.1
+      - opencv-python-headless==4.11.0.86
       - pyclustering==0.10.1.2
       - pylcs==0.1.1
       - transformers==4.36.2
