@@ -9,7 +9,7 @@ This project features a manga translation pipeline that allows Japanese text sou
 2. **Translation:** Leverages a multi-agent framework designed to produce high-quality, context-aware translations, maintaining internal consistency even across large translation projects. Improves upon conventional machine translation by utilizing visual context as well as multi-agent methods to preserve subleties such as variations in text sizing and localization of native idiosyncrasies.
 3. **Typesetting:** Removes identified Japanese text and replaces it with the framework output, resulting in a translated English page that emphasizes readability while preserving the original style and format.
 
-While this pipeline is capable of running locally, it is designed to have user interaction conducted through a local Flask frontend that uses API calls to connect to a remote server, allowing computation to be offloaded in order to minimize latency while maintaining an intuitive user experience. A link to our static website can be found [here](https://nljumaoas.github.io/multiagent-translation/).
+While this pipeline is capable of running locally provided sufficient hardware, it is designed to have user interaction conducted through a local Flask frontend that uses API calls to connect to a remote server, allowing computation to be offloaded in order to minimize latency while maintaining an intuitive user experience. A link to our static website can be found [here](https://nljumaoas.github.io/multiagent-translation/).
 
 ## Setup
 
@@ -32,8 +32,6 @@ conda env create -f environment.yml
 ├── Manga-Text-Segmentation
 │   └── model.pkl
 ├── dsc180b (This Repository)
-│   └── <whatever important files we need>
-└── <any other imports>
 ```
 
 5. Download the LLM to be run as agents locally through Ollama if running the project without API key. This include downloading Ollama first, then the individual agent models:
@@ -44,7 +42,7 @@ ollama serve
 ollama pull llava:7b
 ollama pull llama3.1:8b
 ```
-If you see warnings on unable to detect gpu after installed ollama, run:
+If you see warnings on unable to detect gpu after installing ollama, run:
 ```bash
 apt-get update
 apt-get install pciutils
@@ -58,11 +56,11 @@ ollama pull llama3.1:8b
 ```
 
 # Launching Demo
-Make sure the environment is setup first, and store your openAI api key to the environment:
+Make sure the environment is set up first, and store your OpenAI API key to the environment:
 ```bash
 export API_KEY=<your key>
 ```
-Then navigate to backend folder, launch the demo:
+After navigating to the backend directory, launch the demo:
 ```bash
 python app.py
 ```
