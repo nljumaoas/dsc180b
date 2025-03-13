@@ -1,4 +1,4 @@
-from Translation_stage.translate_page_fast import TranslatorFast
+from Translation_stage.translate_page import Translator
 from processing_stage.processing import PageProcessor
 from Typesetting_stage.typesetting import TextBubbleTypesetter
 import platform
@@ -6,7 +6,7 @@ import platform
 class Pipeline():
     def __init__(self):
         self.page_processor = PageProcessor('../../Manga-Text-Segmentation/model.pkl')
-        self.translator = TranslatorFast("gpt")
+        self.translator = Translator("gpt")
         self.typesetter = self.initialize_typesetter()
 
     def initialize_typesetter(self):
